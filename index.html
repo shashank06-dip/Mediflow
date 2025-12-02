@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Uber for Hospital Waste Trucks</title>
+    <style>
+      body {
+        font-family: Arial;
+        background: #f4f4f4;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #333;
+      }
+      .hidden {
+        display: none;
+      }
+      .hospital {
+        padding: 10px;
+        background: #fafafa;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+        border-radius: 5px;
+      }
+      button {
+        padding: 10px 20px;
+        border: 0;
+        background: #007bff;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056c7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Truck Login</h2>
+      <form id="loginForm">
+        <label>Truck ID:</label><br />
+        <input type="text" id="truckId" required /><br /><br />
+
+        <label>Truck Capacity (kg):</label><br />
+        <input type="number" id="capacity" required /><br /><br />
+
+        <button type="submit">Login</button>
+      </form>
+
+      <div id="dashboard" class="hidden">
+        <h2>Nearby Hospitals</h2>
+        <div id="hospitalList"></div>
+        <button onclick="optimizeRoute()">Optimize Route</button>
+
+        <h3>Optimized Route:</h3>
+        <pre id="routeOutput"></pre>
+
+        <h3>Server Response:</h3>
+        <pre id="serverOutput"></pre>
+      </div>
+    </div>
+
+    <script>
+      // -----------------------------
+      // SAMPLE HOSPITAL DATA
+      // -----------------------------
+      const hospitals = [
+        {
+          name: "City General Hospital",
+          distance: 5,
+          bioWaste: 40,
+          surgeryWaste: 20,
+        },
+        {
+          name: "GreenCare Medical Center",
+          distance: 12,
+          bioWaste: 25,
+          surgeryWaste: 10,
+        },
+        {
+          name: "St. Mary Hospital",
+          distance: 3,
+          bioWaste: 30,
+          surgeryWaste: 15,
+        },
+        {
+          name: "Lakeside Healthcare",
+          distance: 9,
+          bioWaste: 50,
+          surgeryWaste: 30,
+        },
+      ];
+
+      let truck = {};
+
+      // -----------------------------
+      // LOGIN HANDLER
+      // -----------------------------
+      document.getElementById("loginForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        truck.id = document.getElementById("truckId").value;
+        truck.capacity = Number(document.getElementById("capacity").value);
+
+        document.getElementById("loginForm").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+
+        renderHospitals();
+      });
+
+      // -----------------------------
+      // DISPLAY HOSPITAL CARDS
+      // -----------------------------
+      function renderHospitals() {
+        const container = document.getElementById("hospitalList");
+        container.innerHTML = "";
+
+        hospitals.forEach((h) => {
+          const div = document.createElement("div");
+          div.className = "hospital";
+          div.innerHTML = `
+            <strong>${h.name}</strong><br>
+            Distance: ${h.distance} km<br>
+            Bio-Waste: ${h.bioWaste} kg (30m/unit)<br>
+            Surgery-Waste: ${h.surgeryWaste} kg (20m/unit)
+        `;
+          container.appendChild(div);
+        });
+      }
+
+      // -----------------------------
+      // ROUTE OPTIMIZATION
+      // -----------------------------
+      function optimizeRoute() {
+        let remaining = truck.capacity;
+        let available = [...hospitals];
+        let route = [];
+
+        available.sort((a, b) => a.distance - b.distance);
+
+        for (const h of available) {
+          const totalWaste = h.bioWaste + h.surgeryWaste;
+          if (totalWaste <= remaining) {
+            route.push({
+              name: h.name,
+              distance: h.distance,
+              totalWaste,
+              cleanupTime: h.bioWaste * 30 + h.surgeryWaste * 20,
+            });
+            remaining -= totalWaste;
+          }
+        }
+
+        document.getElementById("routeOutput").textContent = JSON.stringify(
+          route,
+          null,
+          2
+        );
+
+        // Send route to backend
+        sendToBackend(route);
+      }
+
+      // -----------------------------
+      // SEND DATA TO BACKEND
+      // -----------------------------
+      const p = 2000;
+      function sendToBackend(route) {
+        fetch(`http://localhost:${p}/receive`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ truck, route, timestamp: Date.now() }),
+        })
+          .then((r) => r.text())
+          .then((msg) => {
+            document.getElementById("serverOutput").textContent = msg; // show on page
+          })
+          .catch((err) => {
+            document.getElementById("serverOutput").textContent =
+              "Error: " + err;
+          });
+      }
+    </script>
+  </body>
+</html>

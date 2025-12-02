@@ -1,0 +1,21 @@
+{
+  "truck": {
+    "id": "10",
+    "capacity": 123
+  },
+  "route": [
+    {
+      "name": "St. Mary Hospital",
+      "distance": 3,
+      "totalWaste": 45,
+      "cleanupTime": 1200
+    },
+    {
+      "name": "City General Hospital",
+      "distance": 5,
+      "totalWaste": 60,
+      "cleanupTime": 1600
+    }
+  ],
+  "timestamp": 1763652882908
+}
